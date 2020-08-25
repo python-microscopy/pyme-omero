@@ -1,1 +1,1 @@
-pyme_omero.recipes.omero_upload
+pyme_omero.recipe_modules.omero_upload

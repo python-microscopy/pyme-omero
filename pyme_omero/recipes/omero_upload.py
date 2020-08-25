@@ -1,1 +1,0 @@
-from PYME.recipes.base import OutputModule
