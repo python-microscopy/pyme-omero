@@ -4,6 +4,9 @@ from omero.gateway import BlitzGateway
 from omero.cli import cli_login
 from omero import rtypes
 import yaml
+import logging
+
+logger = logging.getLogger(__name__)
 
 credentials = '/Users/Andrew/.PYME/plugins/config/pyme-omero'
 with open(credentials) as f:
@@ -56,7 +59,7 @@ def get_or_create_dataset_id(dataset_name):
 
 def file_import(client, file, wait=-1):
     """Re-usable method for a basic import."""
-    from . import import_utils
+    from pyme_omero import import_utils
     mrepo = client.getManagedRepository()
     files = [file]
 
@@ -69,7 +72,16 @@ def file_import(client, file, wait=-1):
     finally:
         proc.close()
 
-def upload_image_from_file(file, dataset_name, wait=-1):
+# def attach_file_to_dataset(connection, dataset_id, file, 
+#                            namespace='pyme.localizations', 
+#                            mimetype='application/octet-stream'):
+#     file_ann = connection.createFileAnnfromLocalFile(file, 
+#                                                      mimetype=mimetype, 
+#                                                      ns=namespace, desc=None)
+#     dataset.linkAnnotation(file_ann)
+
+def upload_image_from_file(file, dataset_name, attachments=(), wait=-1):
+    attachments = list(attachments)
 
     dataset_id = get_or_create_dataset_id(dataset_name)
 
@@ -80,10 +92,31 @@ def upload_image_from_file(file, dataset_name, wait=-1):
 
         if r:
             links = []
-            for p in r.pixels:
-                print ('Imported Image ID: %d' % p.image.id.val)
-                link = omero.model.DatasetImageLinkI()
-                link.parent = omero.model.DatasetI(dataset_id, False)
-                link.child = omero.model.ImageI(p.image.id.val, False)
-                links.append(link)
+            # TODO - doing this as iterable fileset for single file is weird
+            p = r.pixels[0]
+            image_id = p.image.id.val
+            logger.debug('Imported Image ID: %d' % image_id)
+            link = omero.model.DatasetImageLinkI()
+            link.parent = omero.model.DatasetI(dataset_id, False)
+            link.child = omero.model.ImageI(image_id, False)
+            links.append(link)
             conn.getUpdateService().saveArray(links, conn.SERVICE_OPTS)
+
+            if len(attachments) >  0:
+                # have to have loadedness -> True to link an annotation
+                
+                image = conn.getObject("Image", image_id)
+                for attachment in attachments:
+                    # TODO - add guess_mimetype here
+                    namespace='pyme.localizations'
+                    mimetype='application/octet-stream'
+                    file_ann = conn.createFileAnnfromLocalFile(attachment, 
+                                                        mimetype=mimetype, 
+                                                        ns=namespace, desc=None)
+                    logger.debug('Attaching FileAnnotation %d to %d' % (file_ann.getId(), image_id))
+                    image.linkAnnotation(file_ann)
+
+if __name__ == '__main__':
+    upload_image_from_file('/Users/Andrew/Desktop/112418ROI00877.png',
+                           'pyme_omero_testing1', 
+                           attachments=['/Users/Andrew/Desktop/112418ROI00877.hdf'])
