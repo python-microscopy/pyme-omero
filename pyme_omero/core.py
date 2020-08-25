@@ -4,11 +4,13 @@ from omero.gateway import BlitzGateway
 from omero.cli import cli_login
 from omero import rtypes
 import yaml
+import os
+from PYME.config import user_config_dir
 import logging
 
 logger = logging.getLogger(__name__)
 
-credentials = '/Users/Andrew/.PYME/plugins/config/pyme-omero'
+credentials = os.path.join(user_config_dir, 'plugins', 'config', 'pyme-omero')
 with open(credentials) as f:
     credentials = yaml.safe_load(f)
 
@@ -72,14 +74,6 @@ def file_import(client, file, wait=-1):
     finally:
         proc.close()
 
-# def attach_file_to_dataset(connection, dataset_id, file, 
-#                            namespace='pyme.localizations', 
-#                            mimetype='application/octet-stream'):
-#     file_ann = connection.createFileAnnfromLocalFile(file, 
-#                                                      mimetype=mimetype, 
-#                                                      ns=namespace, desc=None)
-#     dataset.linkAnnotation(file_ann)
-
 def upload_image_from_file(file, dataset_name, attachments=(), wait=-1):
     attachments = list(attachments)
 
@@ -89,7 +83,6 @@ def upload_image_from_file(file, dataset_name, attachments=(), wait=-1):
         conn = BlitzGateway(client_obj=cli._client)
 
         r = file_import(cli._client, file, wait)
-
         if r:
             links = []
             # TODO - doing this as iterable fileset for single file is weird
@@ -104,7 +97,6 @@ def upload_image_from_file(file, dataset_name, attachments=(), wait=-1):
 
             if len(attachments) >  0:
                 # have to have loadedness -> True to link an annotation
-                
                 image = conn.getObject("Image", image_id)
                 for attachment in attachments:
                     # TODO - add guess_mimetype here
