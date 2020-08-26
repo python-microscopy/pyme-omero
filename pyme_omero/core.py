@@ -37,12 +37,12 @@ def get_or_create_project_id(connection, project_name):
     project = connection.getUpdateService().saveAndReturnObject(project)
     return project.getId().getValue()
 
-def get_or_create_dataset_id(dataset_name, project_name=None):
+def get_or_create_dataset_id(dataset_name, project_name=''):
     with cli_login(*LOGIN_ARGS) as cli:
         conn = BlitzGateway(client_obj=cli._client)
         
         # handle linking with project if given
-        if project_name != None:
+        if project_name != '':
             # check if the dataset already exists within the project
             project_id = get_or_create_project_id(conn, project_name)
             # projects = conn.getContainerService().loadContainerHierarchy('Project', 
@@ -91,7 +91,7 @@ def file_import(client, file, wait=-1):
     finally:
         proc.close()
 
-def upload_image_from_file(file, dataset_name, project_name=None, 
+def upload_image_from_file(file, dataset_name, project_name='', 
                            attachments=(), wait=-1):
     attachments = list(attachments)
 
