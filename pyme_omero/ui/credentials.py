@@ -61,7 +61,7 @@ class CredentialConfigFrame(wx.Frame):
             'port': int(self.port.GetValue())
         }
 
-        if any([str(v) != '' for v in cred.values()]):
+        if any([str(v) == '' for v in cred.values()]):
             logger.error('Cannot properly configure with any entries left blank')
             return
 
@@ -69,6 +69,8 @@ class CredentialConfigFrame(wx.Frame):
         os.makedirs(plugin_config_dir, exist_ok=True)
         with open(os.path.join(plugin_config_dir, 'pyme-omero'), 'w') as f:
             yaml.dump(cred, f)
+        
+        self.OnQuit(wx_event)
 
     def OnQuit(self, wx_event):
         self.result_name = None
