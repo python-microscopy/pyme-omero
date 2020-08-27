@@ -3,7 +3,7 @@ This is a PYME plugin which enables interoperability between PYME and an OMERO s
 an OMERO server (either as ome.tif format or png) and attaching PYME `tabular` (localization) files to it. The attached localizations can then be viewed from PYMEVis by opening PYMEVis and clicking `File > Open OMERO` and copy pasting the OMERO `Link to this image` into the dialog box.
 
 ## Installation
-1. [install PYME](https://python-microscopy.org/)
+1. install [PYME](https://python-microscopy.org/)
 2. install [omero-py](https://pypi.org/project/omero-py/)
 3. clone this repository
 4. run 
