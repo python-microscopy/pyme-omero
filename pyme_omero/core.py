@@ -126,6 +126,55 @@ def upload_image_from_file(file, dataset_name, project_name='',
                     logger.debug('Attaching FileAnnotation %d to %d' % (file_ann.getId(), image_id))
                     image.linkAnnotation(file_ann)
 
+def localization_tempfiles_from_image_url(image_url):
+    """
+
+    Parameters
+    ----------
+    image_url : str
+        url from OMERO web client, gotten typically by clicking the link symbol
+        with an image selected, i.e. `Link to this image`.
+
+    Returns
+    -------
+    temp_files : list
+        temporary file (needs to be closed later with .close()) for each
+        localization file linked to the image
+    """
+    from urllib.parse import urlparse, parse_qs
+    from omero.util.populate_roi import DownloadingOriginalFileProvider
+
+    url = urlparse(image_url)
+    # for `Link to this image`
+    image_id = int(parse_qs(url.query)['show'][0].split('-')[-1])
+    
+    localization_files = []
+
+    with cli_login(*LOGIN_ARGS) as cli:
+        conn = BlitzGateway(client_obj=cli._client)
+
+        # aim for pyme.localizations namespace
+        localization_links = list(conn.getAnnotationLinks('Image', 
+                                                     parent_ids=[image_id],
+                                                     ns="pyme.localizations"))
+        if len(localization_links) == 0:
+            # give up the filter and just find any, hope there are only localizations attached
+            localization_links = list(conn.getAnnotationLinks('Image', 
+                                                              parent_ids=[image_id]))
+        
+        for link in localization_links:
+            child = link.getChild()
+            if isinstance(child, omero.model.FileAnnotationI):
+                localization_files.append(child.getFile()._obj)
+        
+        provider = DownloadingOriginalFileProvider(conn)
+
+        return [provider.get_original_file_data(file_link) for file_link in localization_files]
+
+def download_localizations(out_dir, localization_ids):
+    pass
+
+
 if __name__ == '__main__':
     upload_image_from_file('/Users/Andrew/Desktop/112418ROI00877.png',
                            'pyme_omero_testing2', project_name='andrew-testing',
