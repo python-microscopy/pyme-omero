@@ -154,14 +154,16 @@ def localization_files_from_image_url(image_url, out_dir):
     with cli_login(*LOGIN_ARGS) as cli:
         conn = BlitzGateway(client_obj=cli._client)
 
-        # aim for pyme.localizations namespace
+        # Would be nice to specify pyme.localizations namespace, but probably
+        # reliable to check file extentsion since one can manually attach
+        # localizations with no namespace specified
+
+        # localization_links = list(conn.getAnnotationLinks('Image', 
+        #                                              parent_ids=[image_id],
+        #                                              ns="pyme.localizations"))
+        
         localization_links = list(conn.getAnnotationLinks('Image', 
-                                                     parent_ids=[image_id],
-                                                     ns="pyme.localizations"))
-        if len(localization_links) == 0:
-            # give up the filter and just find any, hope there are only localizations attached
-            localization_links = list(conn.getAnnotationLinks('Image', 
-                                                              parent_ids=[image_id]))
+                                                            parent_ids=[image_id]))
         
         raw_file_store = conn.createRawFileStore()
 
@@ -173,6 +175,8 @@ def localization_files_from_image_url(image_url, out_dir):
                 continue
 
             filename = og_file.getName().getValue()
+            if os.path.splitext(filename)[-1] not in ['.hdf', '.h5r']:
+                continue
             path = os.path.join(out_dir, filename)
             localization_files.append(path)
             raw_file_store.setFileId(og_file.id.val)
