@@ -126,7 +126,7 @@ def upload_image_from_file(file, dataset_name, project_name='',
                     logger.debug('Attaching FileAnnotation %d to %d' % (file_ann.getId(), image_id))
                     image.linkAnnotation(file_ann)
 
-def localization_tempfiles_from_image_url(image_url):
+def localization_files_from_image_url(image_url, out_dir):
     """
 
     Parameters
@@ -134,12 +134,13 @@ def localization_tempfiles_from_image_url(image_url):
     image_url : str
         url from OMERO web client, gotten typically by clicking the link symbol
         with an image selected, i.e. `Link to this image`.
+    out_dir : str
+        path / name of tempfile.TemporaryDirectory
 
     Returns
     -------
-    temp_files : list
-        temporary file (needs to be closed later with .close()) for each
-        localization file linked to the image
+    localization_files : list
+        paths to localization files saved to disk
     """
     from urllib.parse import urlparse, parse_qs
     from omero.util.populate_roi import DownloadingOriginalFileProvider
@@ -162,14 +163,23 @@ def localization_tempfiles_from_image_url(image_url):
             localization_links = list(conn.getAnnotationLinks('Image', 
                                                               parent_ids=[image_id]))
         
-        for link in localization_links:
-            child = link.getChild()
-            if isinstance(child, omero.model.FileAnnotationI):
-                localization_files.append(child.getFile()._obj)
-        
-        provider = DownloadingOriginalFileProvider(conn)
+        raw_file_store = conn.createRawFileStore()
 
-        return [provider.get_original_file_data(file_link) for file_link in localization_files]
+
+        for link in localization_links:
+            try:  # select for Blitzwrapped omero types with getFile attr
+                og_file = link.getChild().getFile()._obj
+            except AttributeError:  # not all BlitzWrapped omero types have getFile
+                continue
+
+            filename = og_file.getName().getValue()
+            path = os.path.join(out_dir, filename)
+            localization_files.append(path)
+            raw_file_store.setFileId(og_file.id.val)
+            with open(path, 'wb') as f:
+                f.write(raw_file_store.read(0, og_file.size.val))
+        
+        return localization_files
 
 def download_localizations(out_dir, localization_ids):
     pass
