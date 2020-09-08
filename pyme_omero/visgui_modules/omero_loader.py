@@ -32,6 +32,8 @@ class OMEROLoader(object):
 
         for path in paths:
             self.pipeline.OpenFile(path)
+        
+        self.vis_frame.SetFit()
     
     def __del__(self):
         self._tempdir.cleanup()
