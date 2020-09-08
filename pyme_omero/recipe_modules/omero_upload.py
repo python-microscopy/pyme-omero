@@ -78,6 +78,9 @@ class RGBImageUpload(RGBImageOutput):
             loc_filenames = []
             for loc_key, loc_stub in self.input_localization_attachments.items():
                 loc_filename = os.path.join(temp_dir, loc_stub)
+                if os.path.splitext(loc_filename)[-1] == '':
+                    # default to hdf unless h5r is manually specified
+                    loc_filename = loc_filename + '.hdf'
                 loc_filenames.append(loc_filename)
                 namespace[loc_key].to_hdf(loc_filename)
             
