@@ -1,0 +1,29 @@
+- localisations.ProcessColour:
+    input: Localizations
+    output: colour_mapped
+- tablefilters.FilterTable:
+    filters:
+      A:
+      - 5
+      - 20000
+      error_x:
+      - 0
+      - 30
+      error_y:
+      - 0
+      - 30
+    inputName: colour_mapped
+    outputName: filtered_localizations
+- multiview.Fold:
+    input_name: filtered_localizations
+    output_name: folded
+- localisations.DensityMapping:
+    inputLocalizations: folded
+    outputImage: hist
+    pixelSize: 100.0
+    renderingModule: Histogram
+- omero_upload.RGBImageUpload:
+    filePattern: '{file_stub}.png'
+    inputName: hist
+    input_localization_attachments:
+      Localizations: Localizations
