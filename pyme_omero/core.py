@@ -55,8 +55,18 @@ def get_or_create_dataset_id(dataset_name, project_name=''):
             # project._toggleCollectionsLoaded(True)
             #linked_datasets = project.linkedDatasetList()
 
-            # FIXME - add flag to check if dataset already exists but is unlinked?
-            dataset_id = create_dataset(conn, dataset_name)
+            # check if dataset already exists but is unlinked
+            dataset_id = None
+            datasets = conn.getContainerService().loadContainerHierarchy('Dataset', 
+                                                                    None, None)
+            for d in datasets:
+                if d.getName().getValue() == dataset_name:
+                    dataset_id = d.getId().getValue()
+            
+            if dataset_id == None:
+                # make a new dataset
+                dataset_id = create_dataset(conn, dataset_name)
+            
             # link dataset to project
             links = []
             link = omero.model.ProjectDatasetLinkI()
