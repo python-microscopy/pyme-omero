@@ -1,0 +1,1 @@
+pyme_omero.dsviewer_modules.omero_io

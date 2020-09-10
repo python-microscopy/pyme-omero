@@ -17,6 +17,8 @@ with open(credentials) as f:
 LOGIN_ARGS = ['-u%s' % credentials['user'], '-w%s' % credentials['password'], 
               '-s%s' % credentials['address'], '-p%s' % credentials.get('port', 4064)]
 
+BUFF_SIZE = 1048576  # ome.conditions.ApiUsageException: Max read size is: 1048576
+
 def create_dataset(connection, dataset_name):
     dataset = omero.model.DatasetI()
     dataset.setName(rtypes.rstring(dataset_name))
@@ -107,7 +109,7 @@ def upload_image_from_file(file, dataset_name, project_name='',
 
     dataset_id = get_or_create_dataset_id(dataset_name, project_name)
 
-    with cli_login() as cli:
+    with cli_login(*LOGIN_ARGS) as cli:
         conn = BlitzGateway(client_obj=cli._client)
 
         r = file_import(cli._client, file, wait)
@@ -195,9 +197,49 @@ def localization_files_from_image_url(image_url, out_dir):
         
         return localization_files
 
-def download_localizations(out_dir, localization_ids):
-    pass
+def download_image(image_url, out_dir):
+    """
 
+    Parameters
+    ----------
+    image_url : str
+        url from OMERO web client, gotten typically by clicking the link symbol
+        with an image selected, i.e. `Link to this image`.
+    out_dir : str
+        path / name of tempfile.TemporaryDirectory
+
+    Returns
+    -------
+    path : str
+        path to file saved to disk
+    """
+    from urllib.parse import urlparse, parse_qs
+    from omero.util.populate_roi import DownloadingOriginalFileProvider
+
+    url = urlparse(image_url)
+    # for `Link to this image`
+    image_id = int(parse_qs(url.query)['show'][0].split('-')[-1])
+
+    with cli_login(*LOGIN_ARGS) as cli:
+        conn = BlitzGateway(client_obj=cli._client)
+
+        image = conn.getObject("Image", image_id)
+        
+        total_size, buff_generator = image.exportOmeTiff(BUFF_SIZE)
+        
+        path = os.path.join(out_dir, 
+                            os.path.splitext(image.getName())[0] + '.tif')
+        with open(path, 'wb') as f:
+            for buff in buff_generator:        
+                f.write(buff)
+        
+        return path
+
+# conn = BlitzGateway(credentials['user'], credentials['password'], 
+#                     host=credentials['address'], port=credentials.get('port', 
+#                                                                       4064))
+# conn.connect()
+# conn.close()
 
 if __name__ == '__main__':
     upload_image_from_file('/Users/Andrew/Desktop/112418ROI00877.png',
