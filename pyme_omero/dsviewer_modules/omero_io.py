@@ -15,8 +15,8 @@ class OMEROIO(Plugin):
 
         logging.debug('Adding menu items for OMERO loading')
 
-        self.dsviewer.AddMenuItem('File', 'Open OMERO', self.OnOpenOMERO)
-        self.dsviewer.AddMenuItem('File', 'Save to OMERO', self.OnSaveToOMERO)
+        self.dsviewer.AddMenuItem('OMERO', 'Open', self.OnOpenOMERO)
+        self.dsviewer.AddMenuItem('OMERO', 'Save to OMERO', self.OnSaveToOMERO)
 
     def OnOpenOMERO(self, wx_event=None):
         # from pyme_omero.core import localization_files_from_image_url
@@ -39,7 +39,7 @@ class OMEROIO(Plugin):
         path = download_image(image_url, self._tempdir.name)
         logger.debug('temporary file path: %s' % path)
 
-        im = ImageStack(path)
+        im = ImageStack(filename=path)
 
         dv = ViewIm3D(im, glCanvas=self.dsviewer.glCanvas, 
                       parent=wx.GetTopLevelParent(self.dsviewer))
