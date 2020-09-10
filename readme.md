@@ -32,11 +32,14 @@ This is a PYME plugin which enables interoperability between PYME and an OMERO s
 1. install [PYME](https://python-microscopy.org/)
 2. install [omero-py](https://pypi.org/project/omero-py/)
 3. clone this repository
+   ```
+   git clone https://github.com/python-microscopy/pyme-omero
+   ```
 4. run 
     ```
     python pyme-omero/setup.py develop
     ```
-    * Note - mac users installing to conda environments will need to run `setup.py` using a 'framework build', accomplished by running 
+    * Note - mac users installing to conda environments will need to run `setup.py` using a 'framework build', accomplished by running
         ```
         /opt/miniconda3/envs/myenv/python.app/Contents/MacOS/python pyme_omero/install_plugin.py
         ``` 
