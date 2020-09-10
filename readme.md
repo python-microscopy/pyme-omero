@@ -41,8 +41,8 @@ This is a PYME plugin which enables interoperability between PYME and an OMERO s
     ```
     * Note - mac users installing to conda environments will need to run `setup.py` using a 'framework build', accomplished by running
         ```
-        /opt/miniconda3/envs/myenv/python.app/Contents/MacOS/python pyme_omero/install_plugin.py
-        ``` 
+        /opt/miniconda3/envs/myenv/python.app/Contents/MacOS/python pyme-omero/setup.py develop
+        ```
         or similar depending on your conda install location.
 5. In the GUI dialog, enter your OMERO server information/credentials, which will be stored in the PYME config directory (typically `.PYME` folder in your user directory).
    
