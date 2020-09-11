@@ -42,7 +42,7 @@ class OMEROLoader(object):
 
         context = dict(file_stub=os.path.splitext(os.path.split(self.pipeline.filename)[-1])[0])
 
-        omero_mods = [mod for mod in self.pipeline.recipe.modules if isinstance(mod, omero_upload.RGBImageUpload)]
+        omero_mods = [mod for mod in self.pipeline.recipe.modules if isinstance(mod, omero_upload.ImageUpload)]
         
         if len(omero_mods) == 0:
             # we don't have any omero output modules, make one

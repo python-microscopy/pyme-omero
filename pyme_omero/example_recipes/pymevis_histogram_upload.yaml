@@ -15,9 +15,8 @@
     inputName: colour_mapped
     outputName: filtered_localizations
 - omero_upload.RGBImageUpload:
-    colorblindFriendly: true
     filePattern: '{file_stub}.png'
-    inputName: hist_rend
+    input_name: hist_rend
     input_localization_attachments:
       Localizations: Localizations
     scaling_factor: 0.9

@@ -58,9 +58,10 @@ class OMEROIO(Plugin):
         rec = ModuleCollection()
         rec.namespace['input'] = self.image
 
-        uploader = omero_upload.RGBImageUpload(rec, inputName='input')
-        if uploader.configure_traits(kind='modal'):
-                uploader.save(rec.namespace, context)
+        uploader = omero_upload.ImageUpload(rec, input_name='input')
+        if uploader.configure_traits(kind='modal',
+                                     view=uploader.no_localization_view):
+            uploader.save(rec.namespace, context)
     
     def __del__(self):
         self._tempdir.cleanup()
