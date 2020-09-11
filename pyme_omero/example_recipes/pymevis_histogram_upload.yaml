@@ -16,7 +16,7 @@
     outputName: filtered_localizations
 - omero_upload.RGBImageUpload:
     filePattern: '{file_stub}.png'
-    input_name: hist_rend
+    input_image: hist_rend
     input_localization_attachments:
       Localizations: Localizations
     scaling_factor: 0.9

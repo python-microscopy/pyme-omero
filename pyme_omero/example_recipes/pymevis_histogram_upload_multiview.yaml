@@ -24,6 +24,6 @@
     renderingModule: Histogram
 - omero_upload.RGBImageUpload:
     filePattern: '{file_stub}.png'
-    input_name: hist
+    input_image: hist
     input_localization_attachments:
       Localizations: Localizations

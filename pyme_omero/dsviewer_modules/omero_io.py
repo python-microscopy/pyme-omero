@@ -58,7 +58,7 @@ class OMEROIO(Plugin):
         rec = ModuleCollection()
         rec.namespace['input'] = self.image
 
-        uploader = omero_upload.ImageUpload(rec, input_name='input')
+        uploader = omero_upload.ImageUpload(rec, input_image='input')
         if uploader.configure_traits(kind='modal',
                                      view=uploader.no_localization_view):
             uploader.save(rec.namespace, context)

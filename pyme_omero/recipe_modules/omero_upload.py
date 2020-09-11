@@ -93,7 +93,7 @@ class ImageUpload(OutputModule):
     
     @property
     def inputs(self):
-        return set(self.input_localization_attachments.keys()).union(set([self.input_name]))
+        return set(self.input_localization_attachments.keys()).union(set([self.input_image]))
     
     @property
     def default_view(self):
@@ -106,7 +106,7 @@ class ImageUpload(OutputModule):
 
         inputs, outputs, params = self.get_params()
         
-        return View([Item(name='input_name', editor=CBEditor(choices=self._namespace_keys)),] +
+        return View([Item(name='input_image', editor=CBEditor(choices=self._namespace_keys)),] +
                     [Item(name='input_localization_attachments', 
                           editor=DictChoiceStrEditor(choices=self._namespace_keys)),] +
                     [Item('_'),] +
@@ -123,7 +123,7 @@ class ImageUpload(OutputModule):
 
         inputs, outputs, params = self.get_params()
         
-        return View([Item(name='input_name', editor=CBEditor(choices=self._namespace_keys)),] +
+        return View([Item(name='input_image', editor=CBEditor(choices=self._namespace_keys)),] +
                     [Item('_'),] +
                     self._view_items(params), buttons=['OK', 'Cancel'])
 
