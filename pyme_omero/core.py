@@ -88,14 +88,14 @@ def get_or_create_dataset_id(dataset_name, project_name=''):
         # otherwise create a new dataset
         return create_dataset(conn, dataset_name)
 
-def file_import(client, file, wait=-1):
+def file_import(client, filename, wait=-1):
     """Re-usable method for a basic import."""
     from pyme_omero import import_utils
     mrepo = client.getManagedRepository()
-    files = [file]
+    files = [filename]
 
     fileset = import_utils.create_fileset(files)
-    settings = import_utils.create_settings()
+    settings = import_utils.create_settings(name=os.path.basename(filename))
 
     proc = mrepo.importFileset(fileset, settings)
     try:

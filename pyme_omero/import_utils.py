@@ -96,13 +96,13 @@ def create_fileset(files):
     return fileset
 
 
-def create_settings():
+def create_settings(name=None):
     """Create ImportSettings and set some values."""
     settings = omero.grid.ImportSettings()
     settings.doThumbnails = rbool(True)
     settings.noStatsInfo = rbool(False)
     settings.userSpecifiedTarget = None
-    settings.userSpecifiedName = None
+    settings.userSpecifiedName = None if not name else rstring(name)
     settings.userSpecifiedDescription = None
     settings.userSpecifiedAnnotationList = None
     settings.userSpecifiedPixels = None
