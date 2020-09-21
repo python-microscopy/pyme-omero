@@ -1,5 +1,5 @@
 # pyme-omero
-This is a PYME plugin which enables interoperability between PYME and an OMERO server. Feature requests welcome.
+This is a PYME plugin which enables interoperability between PYME and an OMERO server. Contributions / feature requests welcome.
 
 ## Current Features / how-to
 - Load localizations attached to an OMERO image in PYMEVis
