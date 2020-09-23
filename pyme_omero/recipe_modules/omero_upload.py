@@ -136,7 +136,7 @@ class RGBImageUpload(ImageUpload):
 
     Parameters
     ----------
-    inputName : str
+    input_image : str
         name of image in the recipe namespace to upload
     input_localization_attachments : dict
         maps tabular types (keys) to attachment filenames (values). Tabular's
@@ -181,7 +181,7 @@ class RGBImageUpload(ImageUpload):
         from PIL import Image
         from PYME.IO.rgb_image import image_to_rgb, image_to_cmy
         
-        if self.colorblind_friendly:
+        if (self.colorblind_friendly and (image.data.shape[3] != 1)):
             im = image_to_cmy(image, zoom=self.zoom, scaling=self.scaling, 
                               scaling_factor=self.scaling_factor)
         else:
