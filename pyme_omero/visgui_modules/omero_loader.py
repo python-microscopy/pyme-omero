@@ -49,6 +49,7 @@ class OMEROLoader(object):
     def OnOpenOMERO(self, wx_event=None):
         from pyme_omero.core import localization_files_from_image_url
         import wx
+        import os
         dlg = wx.TextEntryDialog(self.vis_frame, 'OMERO URL', 
                                  'URL to OMERO image with attached localizations', '')
 
@@ -62,10 +63,16 @@ class OMEROLoader(object):
 
         paths = localization_files_from_image_url(image_url, self._tempdir.name)
 
-        for path in paths:
-            self.pipeline.OpenFile(path)
+        data_sources = {}
+        for p_ind in range(1, len(paths)):
+            ds = self.pipeline._ds_from_file(paths[p_ind])
+            name = os.path.splitext(os.path.split(paths[p_ind])[-1])[0]
+            data_sources[name] = ds
+            self.pipeline.addDataSource(name, ds)
         
+        self.pipeline.OpenFile(paths[0])
         self.vis_frame.SetFit()
+        self.vis_frame.add_pointcloud_layer()
     
     def OnSaveSnapshot(self, wx_event=None):
         from pyme_omero.core import upload_image_from_file
