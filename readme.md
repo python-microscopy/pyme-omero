@@ -7,13 +7,17 @@ This is a PYME plugin which enables interoperability between PYME and an OMERO s
   2. Clicking `File > Open OMERO` 
   3. copy the OMERO `Link to this image` into the dialog box.
   4. Click OK.
-- Upload localizations from PYMEVis to OMERO server with a thumbnail rendering
+- Upload localizations from PYMEVis to OMERO server attached to a snapshot of the current view
+  1. Open localizations in PYMEVis, and set the view how you like
+  2. Click `File > Save to OMERO > Snapshot`.
+  3. Enter the project and dataset the image should be uploaded/linked to. The project/dataset will be created if they don't already exist.
+  4. Click OK. The current pipeline datasource localizations as well as the upstream `Localizations` datasource (if present) will be attached to the thumbnail on OMERO.
+- Upload localizations from PYMEVis to OMERO server attached to a PNG/TIF rendering
   1. Open localizations in PYMEVis
-  2. make sure there is an image rendering in the pipeline recipe, either by adding the `DensityMapping` recipe module, or by loading one of the example recipes `pyme_omero/example_recipes`.
-  3. Click `File > Save to OMERO`.
-  4. Enter the project name (optional) and dataset name the image should be uploaded/linnked to. The project/dataset will be created if they don't already exist.
-  5. In the `Input Localization Attachments` table, click to open the table menu and add a localization attachment. You can attach multiple localization sets from the recipe to the image. Their filenames will be whatever you enter in the `Table Name` box, defaulting to an `.hdf` extension if you do not specify one.
-  6. Click OK.
+  2. Click `File > Save to OMERO > PNG` or `File > Save to OMERO > OME Tif`.
+  3. Select your rendering method/settings and enter the OMERO project/dataset names the image should be uploaded/linked to. The project/dataset will be created if they don't already exist.
+  4. In the `Input Localization Attachments` table, click to open the table menu and add a localization attachment. You can attach multiple localization sets from the recipe to the image. Their filenames will be whatever you enter in the `Table Name` box, defaulting to an `.hdf` extension if you do not specify one.
+  5. Click OK.
 - Load image from an OMERO server in dh5view
   1. From an open dh5view window, click `Modules > omero_io`.
   2. Click `OMERO > Open`, 
