@@ -113,6 +113,10 @@ class ImageUpload(OutputModule):
                     self._view_items(params), buttons=['OK', 'Cancel'])
     
     @property
+    def pipeline_view(self):
+        return self.default_view
+    
+    @property
     def no_localization_view(self):
         import wx
         if wx.GetApp() is None:

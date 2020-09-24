@@ -1,7 +1,36 @@
+
+import wx
 import logging
 
 logger=logging.getLogger(__name__)
 
+
+class SnapshotDialog(wx.Dialog):
+    def __init__(self, parent=None, defaults=dict(), size=(300, 400)):
+        wx.Dialog.__init__(self, parent, title='Save Snapshot to OMERO',
+                           size=size)
+
+        v_sizer = wx.BoxSizer(wx.VERTICAL)
+        h_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        h_sizer.Add(wx.StaticText(self, label='Project:'))
+        self.project = wx.TextCtrl(self, wx.ID_ANY, defaults.get('project', ''), 
+                              size=(250,-1))
+        h_sizer.Add(self.project, 0, wx.ALL, 5)
+        v_sizer.Add(h_sizer, 0, wx.ALL, 5)
+        h_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        h_sizer.Add(wx.StaticText(self, label='Dataset:'))
+        self.dataset = wx.TextCtrl(self, wx.ID_ANY, defaults.get('dataset', ''), 
+                              size=(250,-1))
+        h_sizer.Add(self.dataset, 0, wx.ALL, 5)
+        v_sizer.Add(h_sizer, 0, wx.ALL, 5)
+
+        h_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        btn = wx.Button(self, wx.ID_OK)
+        btn.SetDefault()
+        h_sizer.Add(btn, 0, wx.ALL, 5)
+        v_sizer.Add(h_sizer, 0, wx.ALL, 5)
+
+        self.SetSizerAndFit(v_sizer)
 
 class OMEROLoader(object):
     def __init__(self, vis_frame):
@@ -11,9 +40,11 @@ class OMEROLoader(object):
         self.pipeline = vis_frame.pipeline
 
         logging.debug('Adding menu items for OMERO loading')
-
         vis_frame.AddMenuItem('File', 'Open OMERO', self.OnOpenOMERO)
-        vis_frame.AddMenuItem('File', 'Save to OMERO', self.OnSaveToOMERO)
+        vis_frame.AddMenuItem('File>Save to OMERO', 'Snapshot', self.OnSaveSnapshot)
+        vis_frame.AddMenuItem('File>Save to OMERO', 'PNG', self.OnSavePNG)
+        vis_frame.AddMenuItem('File>Save to OMERO', 'OME Tif', self.OnSaveTif)
+        vis_frame.AddMenuItem('File>Save to OMERO', 'From Recipe', self.OnSaveFromRecipe)
 
     def OnOpenOMERO(self, wx_event=None):
         from pyme_omero.core import localization_files_from_image_url
@@ -36,7 +67,86 @@ class OMEROLoader(object):
         
         self.vis_frame.SetFit()
     
-    def OnSaveToOMERO(self, wx_event=None):
+    def OnSaveSnapshot(self, wx_event=None):
+        from pyme_omero.core import upload_image_from_file
+        import os
+        import PIL
+        import wx
+        from OpenGL.GL import GL_LUMINANCE, GL_RGB
+        # from PYME.LMVis.Extras.snapshot import save_snapshot
+
+        file_stub=os.path.splitext(os.path.split(self.pipeline.filename)[-1])[0]
+        
+        # take the snapshot
+        snap = self.vis_frame.glCanvas.getIm(None, GL_RGB)
+        logger.debug('%s %s %d' % (snap.dtype, snap.shape, snap.max()))
+        if snap.ndim == 3:
+            img = PIL.Image.fromarray(snap.transpose(1, 0, 2))
+        else:
+            img = PIL.Image.fromarray(snap.transpose())
+        
+        img = img.transpose(PIL.Image.FLIP_TOP_BOTTOM)
+        
+        snapshot = os.path.join(self._tempdir.name, file_stub + '.png')
+        img.save(snapshot)
+
+        dlg = SnapshotDialog(self.vis_frame)
+        ret = dlg.ShowModal()
+        
+        if ret == wx.ID_OK:
+            project = str(dlg.project.GetValue())
+            dataset = str(dlg.dataset.GetValue())
+
+            current = os.path.join(self._tempdir.name, self.pipeline.selectedDataSourceKey + '.hdf')
+            self.pipeline.selectedDataSource.to_hdf(current)
+            attachments = [current]
+
+            if 'Localizations' in self.pipeline.dataSources.keys():
+                locs = os.path.join(self._tempdir.name, 'Localizations.hdf')
+                self.pipeline.dataSources['Localizations'].to_hdf(locs)
+                attachments.append(locs)
+            
+            upload_image_from_file(snapshot, dataset, project, attachments)
+    
+    def OnSavePNG(self, wx_event=None):
+        from pyme_omero.recipe_modules import omero_upload
+        import os
+        from PYME.recipes.base import ModuleCollection
+        from PYME.recipes.localisations import DensityMapping
+
+        context = dict(file_stub=os.path.splitext(os.path.split(self.pipeline.filename)[-1])[0])
+        
+        rec = ModuleCollection() # build new recipe but point to old namespace
+        rec.namespace = self.pipeline.recipe.namespace
+        rec.add_module(DensityMapping(rec, 
+                                        inputLocalizations=self.pipeline.selectedDataSourceKey,
+                                        outputImage='thumbnail_rendering'))
+        rec.add_module(omero_upload.RGBImageUpload(rec,
+                                                    input_image='thumbnail_rendering'))
+        if rec.configure_traits(view=rec.pipeline_view, kind='modal'):
+            rec.execute()
+            rec.save(context)
+    
+    def OnSaveTif(self, wx_event=None):
+        from pyme_omero.recipe_modules import omero_upload
+        import os
+        from PYME.recipes.base import ModuleCollection
+        from PYME.recipes.localisations import DensityMapping
+
+        context = dict(file_stub=os.path.splitext(os.path.split(self.pipeline.filename)[-1])[0])
+        
+        rec = ModuleCollection() # build new recipe but point to old namespace
+        rec.namespace = self.pipeline.recipe.namespace
+        rec.add_module(DensityMapping(rec, 
+                                        inputLocalizations=self.pipeline.selectedDataSourceKey,
+                                        outputImage='thumbnail_rendering'))
+        rec.add_module(omero_upload.ImageUpload(rec,
+                                                input_image='thumbnail_rendering'))
+        if rec.configure_traits(view=rec.pipeline_view, kind='modal'):
+            rec.execute()
+            rec.save(context)
+    
+    def OnSaveFromRecipe(self, wx_event=None):
         from pyme_omero.recipe_modules import omero_upload
         import os
 
@@ -44,12 +154,6 @@ class OMEROLoader(object):
 
         omero_mods = [mod for mod in self.pipeline.recipe.modules if isinstance(mod, omero_upload.ImageUpload)]
         
-        if len(omero_mods) == 0:
-            # we don't have any omero output modules, make one
-            uploader = omero_upload.RGBImageUpload(self.pipeline.recipe)
-            if uploader.configure_traits(kind='modal'):
-                omero_mods.append(uploader)
-
         for mod in omero_mods:
             mod.save(self.pipeline.recipe.namespace, context)
     
