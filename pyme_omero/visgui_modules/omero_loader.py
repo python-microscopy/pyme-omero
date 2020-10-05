@@ -105,12 +105,23 @@ class OMEROLoader(object):
             dataset = str(dlg.dataset.GetValue())
 
             current = os.path.join(self._tempdir.name, self.pipeline.selectedDataSourceKey + '.hdf')
-            self.pipeline.selectedDataSource.to_hdf(current)
+            try:
+                mdh = self.pipeline.selectedDataSource.mdh
+            except AttributeError:
+                mdh = self.pipeline.mdh
+            self.pipeline.selectedDataSource.to_hdf(current, 'Localizations', 
+                                                    metadata=mdh)
             attachments = [current]
 
-            if 'Localizations' in self.pipeline.dataSources.keys():
+            if 'Localizations' in self.pipeline.dataSources.keys() and self.pipeline.selectedDataSourceKey !='Localizations':
                 locs = os.path.join(self._tempdir.name, 'Localizations.hdf')
-                self.pipeline.dataSources['Localizations'].to_hdf(locs)
+                try:
+                    mdh = self.pipeline.dataSources['Localizations'].mdh
+                except AttributeError:
+                    mdh = self.pipeline.mdh
+                self.pipeline.dataSources['Localizations'].to_hdf(locs, 
+                                                                  'Localizations',
+                                                                  metadata=mdh)
                 attachments.append(locs)
             
             upload_image_from_file(snapshot, dataset, project, attachments)
