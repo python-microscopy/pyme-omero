@@ -86,7 +86,12 @@ class ImageUpload(OutputModule):
                     # default to hdf unless h5r is manually specified
                     loc_filename = loc_filename + '.hdf'
                 loc_filenames.append(loc_filename)
-                namespace[loc_key].to_hdf(loc_filename)
+                try:
+                    mdh = namespace[loc_key].mdh
+                except AttributeError:
+                    mdh = None
+                namespace[loc_key].to_hdf(loc_filename, 'Localizations',
+                                          metadata=mdh)
             
             upload_image_from_file(out_filename, self.omero_dataset, 
                                    self.omero_project, loc_filenames)
