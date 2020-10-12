@@ -76,6 +76,7 @@ class OMEROLoader(object):
     
     def OnSaveSnapshot(self, wx_event=None):
         from pyme_omero.core import upload_image_from_file
+        from PYME.IO import unifiedIO
         import os
         import PIL
         import wx
@@ -103,29 +104,29 @@ class OMEROLoader(object):
         if ret == wx.ID_OK:
             project = str(dlg.project.GetValue())
             dataset = str(dlg.dataset.GetValue())
-
-            current = os.path.join(self._tempdir.name, self.pipeline.selectedDataSourceKey + '.hdf')
+            
+            # upload the currently selected datasource as an hdf file
+            current_key = self.pipeline.selectedDataSourceKey
+            current = os.path.join(self._tempdir.name, current_key + '.hdf')
             try:
                 mdh = self.pipeline.selectedDataSource.mdh
             except AttributeError:
                 mdh = self.pipeline.mdh
-            self.pipeline.selectedDataSource.to_hdf(current, 'Localizations', 
+            self.pipeline.selectedDataSource.to_hdf(current, 
+                                                    self.pipeline.selectedDataSourceKey, 
                                                     metadata=mdh)
             attachments = [current]
-
-            if 'Localizations' in self.pipeline.dataSources.keys() and self.pipeline.selectedDataSourceKey !='Localizations':
-                locs = os.path.join(self._tempdir.name, 'Localizations.hdf')
-                try:
-                    mdh = self.pipeline.dataSources['Localizations'].mdh
-                except AttributeError:
-                    mdh = self.pipeline.mdh
-                self.pipeline.dataSources['Localizations'].to_hdf(locs, 
-                                                                  'Localizations',
-                                                                  metadata=mdh)
-                attachments.append(locs)
             
-            upload_image_from_file(snapshot, dataset, project, attachments)
-    
+            if self.pipeline.filename:
+                # include farthest upstream file complete with acquisition events,
+                # etc. if it exists. Little gross with the context manager, but
+                # unifiedIO creates a tempfile on it's own when loading remote
+                with unifiedIO.local_or_temp_filename(self.pipeline.filename) as f:
+                    attachments.append(f)
+                    upload_image_from_file(snapshot, dataset, project, attachments)
+            else:
+                upload_image_from_file(snapshot, dataset, project, attachments)
+
     def OnSavePNG(self, wx_event=None):
         from pyme_omero.recipe_modules import omero_upload
         import os
