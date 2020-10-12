@@ -129,14 +129,37 @@ def upload_image_from_file(file, dataset_name, project_name='',
                 # have to have loadedness -> True to link an annotation
                 image = conn.getObject("Image", image_id)
                 for attachment in attachments:
-                    # TODO - add guess_mimetype here
-                    namespace='pyme.localizations'
-                    mimetype='application/octet-stream'
-                    file_ann = conn.createFileAnnfromLocalFile(attachment, 
-                                                        mimetype=mimetype, 
-                                                        ns=namespace, desc=None)
-                    logger.debug('Attaching FileAnnotation %d to %d' % (file_ann.getId(), image_id))
-                    image.linkAnnotation(file_ann)
+                    # TODO - add guess_mimetype / namespace here
+                    upload_file_annotation(conn, image, attachment, 
+                                           namespace='pyme.localizations')
+
+def upload_file_annotation(connection, image, file, 
+                           mimetype='application/octet-stream', 
+                           namespace='', description=None):
+    """ upload a file as an attachment to an already-uploaded image
+
+    Parameters
+    ----------
+    connection : omero.gateway.BlitzGateway
+        an open connection to an OMERO server
+    image : int or omero object wrapped
+        either an image_id or a Blitz object wrapper instance of the image
+    file : str
+        path to the file on disk
+    mimetype : str, optional
+        by default 'application/octet-stream'
+    namespace : str, optional
+        by default ''
+    description : str, optional
+        by default None
+    """
+    if isinstance(image, str):
+        image = connection.getObject("Image", image)
+    file_ann = connection.createFileAnnfromLocalFile(file, mimetype=mimetype,
+                                                     ns=namespace, desc=None)
+    logger.debug('Attaching FileAnnotation %d to %d' % (file_ann.getId(), 
+                                                        image.getId()))
+    image.linkAnnotation(file_ann)
 
 def localization_files_from_image_url(image_url, out_dir):
     """
