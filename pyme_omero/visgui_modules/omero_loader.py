@@ -75,7 +75,8 @@ class OMEROLoader(object):
         self.vis_frame.add_pointcloud_layer()
     
     def OnSaveSnapshot(self, wx_event=None):
-        from pyme_omero.core import upload_image_from_file
+        from pyme_omero import core
+        from PYME.IO import unifiedIO
         import os
         import PIL
         import wx
@@ -103,36 +104,37 @@ class OMEROLoader(object):
         if ret == wx.ID_OK:
             project = str(dlg.project.GetValue())
             dataset = str(dlg.dataset.GetValue())
-
-            current = os.path.join(self._tempdir.name, self.pipeline.selectedDataSourceKey + '.hdf')
+            
+            # upload the currently selected datasource as an hdf file
+            current_key = self.pipeline.selectedDataSourceKey
+            current = os.path.join(self._tempdir.name, current_key + '.hdf')
             try:
                 mdh = self.pipeline.selectedDataSource.mdh
             except AttributeError:
                 mdh = self.pipeline.mdh
-            self.pipeline.selectedDataSource.to_hdf(current, 'Localizations', 
+            self.pipeline.selectedDataSource.to_hdf(current, 
+                                                    self.pipeline.selectedDataSourceKey, 
                                                     metadata=mdh)
             attachments = [current]
-
-            if 'Localizations' in self.pipeline.dataSources.keys() and self.pipeline.selectedDataSourceKey !='Localizations':
-                locs = os.path.join(self._tempdir.name, 'Localizations.hdf')
-                try:
-                    mdh = self.pipeline.dataSources['Localizations'].mdh
-                except AttributeError:
-                    mdh = self.pipeline.mdh
-                self.pipeline.dataSources['Localizations'].to_hdf(locs, 
-                                                                  'Localizations',
-                                                                  metadata=mdh)
-                attachments.append(locs)
             
-            upload_image_from_file(snapshot, dataset, project, attachments)
-    
+            # include farthest upstream file (complete, e.g. w/ acquisition events)
+            image_id = core.upload_image_from_file(snapshot, dataset, project, attachments)
+            try:
+                with core.local_or_named_temp_filename(self.pipeline.filename) as f:
+                    core.connect_and_upload_file_annotation(image_id, f,
+                                                            namespace='pyme.localizations')
+            except (AttributeError, IOError) as e:
+                logger.error(e)
+
     def OnSavePNG(self, wx_event=None):
         from pyme_omero.recipe_modules import omero_upload
         import os
         from PYME.recipes.base import ModuleCollection
         from PYME.recipes.localisations import DensityMapping
-
-        context = dict(file_stub=os.path.splitext(os.path.split(self.pipeline.filename)[-1])[0])
+        
+        input_dir, file_stub = os.path.split(self.pipeline.filename)
+        file_stub, ext = os.path.splitext(file_stub)
+        context = dict(file_stub=file_stub, input_dir=input_dir)
         
         rec = ModuleCollection() # build new recipe but point to old namespace
         rec.namespace = self.pipeline.recipe.namespace
@@ -151,7 +153,9 @@ class OMEROLoader(object):
         from PYME.recipes.base import ModuleCollection
         from PYME.recipes.localisations import DensityMapping
 
-        context = dict(file_stub=os.path.splitext(os.path.split(self.pipeline.filename)[-1])[0])
+        input_dir, file_stub = os.path.split(self.pipeline.filename)
+        file_stub, ext = os.path.splitext(file_stub)
+        context = dict(file_stub=file_stub, input_dir=input_dir)
         
         rec = ModuleCollection() # build new recipe but point to old namespace
         rec.namespace = self.pipeline.recipe.namespace
@@ -168,7 +172,9 @@ class OMEROLoader(object):
         from pyme_omero.recipe_modules import omero_upload
         import os
 
-        context = dict(file_stub=os.path.splitext(os.path.split(self.pipeline.filename)[-1])[0])
+        input_dir, file_stub = os.path.split(self.pipeline.filename)
+        file_stub, ext = os.path.splitext(file_stub)
+        context = dict(file_stub=file_stub, input_dir=input_dir)
 
         omero_mods = [mod for mod in self.pipeline.recipe.modules if isinstance(mod, omero_upload.ImageUpload)]
         
