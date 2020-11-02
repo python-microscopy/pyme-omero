@@ -75,7 +75,7 @@ class OMEROLoader(object):
         self.vis_frame.add_pointcloud_layer()
     
     def OnSaveSnapshot(self, wx_event=None):
-        from pyme_omero.core import upload_image_from_file
+        from pyme_omero import core
         from PYME.IO import unifiedIO
         import os
         import PIL
@@ -117,23 +117,24 @@ class OMEROLoader(object):
                                                     metadata=mdh)
             attachments = [current]
             
-            if self.pipeline.filename:
-                # include farthest upstream file complete with acquisition events,
-                # etc. if it exists. Little gross with the context manager, but
-                # unifiedIO creates a tempfile on it's own when loading remote
-                with unifiedIO.local_or_temp_filename(self.pipeline.filename) as f:
-                    attachments.append(f)
-                    upload_image_from_file(snapshot, dataset, project, attachments)
-            else:
-                upload_image_from_file(snapshot, dataset, project, attachments)
+            # include farthest upstream file (complete, e.g. w/ acquisition events)
+            image_id = core.upload_image_from_file(snapshot, dataset, project, attachments)
+            try:
+                with core.local_or_named_temp_filename(self.pipeline.filename) as f:
+                    core.connect_and_upload_file_annotation(image_id, f,
+                                                            namespace='pyme.localizations')
+            except (AttributeError, IOError) as e:
+                logger.error(e)
 
     def OnSavePNG(self, wx_event=None):
         from pyme_omero.recipe_modules import omero_upload
         import os
         from PYME.recipes.base import ModuleCollection
         from PYME.recipes.localisations import DensityMapping
-
-        context = dict(file_stub=os.path.splitext(os.path.split(self.pipeline.filename)[-1])[0])
+        
+        input_dir, file_stub = os.path.split(self.pipeline.filename)
+        file_stub, ext = os.path.splitext(file_stub)
+        context = dict(file_stub=file_stub, input_dir=input_dir)
         
         rec = ModuleCollection() # build new recipe but point to old namespace
         rec.namespace = self.pipeline.recipe.namespace
@@ -152,7 +153,9 @@ class OMEROLoader(object):
         from PYME.recipes.base import ModuleCollection
         from PYME.recipes.localisations import DensityMapping
 
-        context = dict(file_stub=os.path.splitext(os.path.split(self.pipeline.filename)[-1])[0])
+        input_dir, file_stub = os.path.split(self.pipeline.filename)
+        file_stub, ext = os.path.splitext(file_stub)
+        context = dict(file_stub=file_stub, input_dir=input_dir)
         
         rec = ModuleCollection() # build new recipe but point to old namespace
         rec.namespace = self.pipeline.recipe.namespace
@@ -169,7 +172,9 @@ class OMEROLoader(object):
         from pyme_omero.recipe_modules import omero_upload
         import os
 
-        context = dict(file_stub=os.path.splitext(os.path.split(self.pipeline.filename)[-1])[0])
+        input_dir, file_stub = os.path.split(self.pipeline.filename)
+        file_stub, ext = os.path.splitext(file_stub)
+        context = dict(file_stub=file_stub, input_dir=input_dir)
 
         omero_mods = [mod for mod in self.pipeline.recipe.modules if isinstance(mod, omero_upload.ImageUpload)]
         

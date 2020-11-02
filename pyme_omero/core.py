@@ -6,6 +6,7 @@ from omero import rtypes
 import yaml
 import os
 from PYME.config import user_config_dir
+from contextlib import contextmanager
 import logging
 
 logger = logging.getLogger(__name__)
@@ -18,6 +19,73 @@ LOGIN_ARGS = ['-u%s' % credentials['user'], '-w%s' % credentials['password'],
               '-s%s' % credentials['address'], '-p%s' % credentials.get('port', 4064)]
 
 BUFF_SIZE = 1048576  # ome.conditions.ApiUsageException: Max read size is: 1048576
+
+def link_to_desired_name(temp_filename, filename):
+    """create a hardlink on the filesystem in order to name a temporary file
+
+    Parameters
+    ----------
+    temp_filename : str
+        full path to the temporary file
+    filename : str
+        desired filename
+
+    Returns
+    -------
+    str
+        full path to the link
+    """
+    og_dir, stub = os.path.split(filename)
+    temp_dir, temp_stub = os.path.split(temp_filename)
+    linked_name = os.path.join(temp_dir, stub)
+    os.link(temp_filename, linked_name)
+    return linked_name
+
+@contextmanager
+def local_or_named_temp_filename(url):
+    """ riff of PYME.IO.clusterIO.local_or_temp_filename, but one which returns
+    a filename with a matching file stub to the original rather than a random
+    temporary filename
+
+    Parameters
+    ----------
+    url : str
+        local path or pyme-cluster url
+
+    Yields
+    -------
+    str
+        path to a (temporary) file so `url` can be loaded using modules which
+        expect a local filename
+    """
+    from PYME.IO.FileUtils import nameUtils
+    from PYME.IO import unifiedIO
+    import tempfile
+
+    filename = nameUtils.getFullExistingFilename(url)
+
+    if os.path.exists(filename):
+        yield filename
+    elif unifiedIO.is_cluster_uri(url):
+        from PYME.IO import clusterIO
+
+        name, clusterfilter = unifiedIO.split_cluster_url(filename)
+
+        localpath = clusterIO.get_local_path(name, clusterfilter)
+        if localpath:
+            yield localpath
+        else:
+            ext = os.path.splitext(name)[-1]
+
+            with tempfile.TemporaryDirectory() as temp_dir:
+                with open(os.path.join(temp_dir, os.path.split(name)[-1]), 'wb') as f:
+                    s = clusterIO.get_file(name, clusterfilter)
+                    f.write(s)
+                    f.flush()
+                    yield f.name
+
+    else:
+        raise IOError('Path "%s" could not be found' % url)
 
 def create_dataset(connection, dataset_name):
     dataset = omero.model.DatasetI()
@@ -132,6 +200,7 @@ def upload_image_from_file(file, dataset_name, project_name='',
                     # TODO - add guess_mimetype / namespace here
                     upload_file_annotation(conn, image, attachment, 
                                            namespace='pyme.localizations')
+    return image_id
 
 def upload_file_annotation(connection, image, file, 
                            mimetype='application/octet-stream', 
@@ -153,13 +222,25 @@ def upload_file_annotation(connection, image, file,
     description : str, optional
         by default None
     """
-    if isinstance(image, str):
+    try:
+        image_id = image.getId()
+    except AttributeError:  # need to get the image from it's id
+        image_id = image
         image = connection.getObject("Image", image)
+    
     file_ann = connection.createFileAnnfromLocalFile(file, mimetype=mimetype,
                                                      ns=namespace, desc=None)
     logger.debug('Attaching FileAnnotation %d to %d' % (file_ann.getId(), 
-                                                        image.getId()))
+                                                        image_id))
     image.linkAnnotation(file_ann)
+
+def connect_and_upload_file_annotation(image_id, file, 
+                                       mimetype='application/octet-stream',
+                                       namespace='', description=None):
+    with cli_login(*LOGIN_ARGS) as cli:
+        conn = BlitzGateway(client_obj=cli._client)
+        upload_file_annotation(conn, image_id, file, mimetype, namespace,
+                               description)
 
 def localization_files_from_image_url(image_url, out_dir):
     """
