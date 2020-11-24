@@ -4,6 +4,9 @@ from PYME.recipes.output import RGBImageOutput
 from PYME.recipes.traits import DictStrStr, CStr, Input, Output, Enum, Float, Int, Bool
 import os
 
+class Sample(object):
+    pass
+
 @register_module('ImageUpload')
 class ImageUpload(OutputModule):
     """
@@ -77,9 +80,12 @@ class ImageUpload(OutputModule):
 
         im = namespace[self.input_image]
 
-        try:
-            sample_md = {k:im.mdh[k] for k in im.mdh.keys() if k.startswith('Sample')}
-        except AttributeError:
+        if hasattr(im, 'mdh'):
+            sample = Sample()  # hack around our md keys having periods in them
+            for k in [k for k in im.mdh.keys() if k.startswith('Sample.')]:
+                setattr(sample, k.split('Sample.')[-1], im.mdh[k])
+            sample_md = dict(Sample=sample)
+        else:
             sample_md = {}
         
         dataset = self.omero_dataset.format(**sample_md)
