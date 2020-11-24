@@ -66,11 +66,11 @@ class ImageUpload(OutputModule):
             The recipe namespace
         context : dict
             Information about the source file to allow pattern substitution to 
-            generate the output name. At least 'filestub' (which is the filename
-            without any extension) should be resolved.
+            generate the output name. At least 'file_stub' (which is the 
+            filename without any extension) should be resolved.
 
         """
-        from pyme_omero.core import upload_image_from_file
+        from pyme_omero import core
         from tempfile import TemporaryDirectory
         
         out_filename = self.filePattern.format(**context)
@@ -100,11 +100,20 @@ class ImageUpload(OutputModule):
                     mdh = namespace[loc_key].mdh
                 except AttributeError:
                     mdh = None
-                namespace[loc_key].to_hdf(loc_filename, 'Localizations',
-                                          metadata=mdh)
+                namespace[loc_key].to_hdf(loc_filename, loc_key, metadata=mdh)
             
-            upload_image_from_file(out_filename, dataset, project, 
-                                   loc_filenames)
+            image_id = core.upload_image_from_file(out_filename, dataset, 
+                                                   project, loc_filenames)
+        
+        # if an h5r file is the principle input, upload it
+        try:
+            principle = os.path.join(context['input_dir'], 
+                                     context['file_stub']) + '.h5r'
+            with core.local_or_named_temp_filename(principle) as f:
+                core.connect_and_upload_file_annotation(image_id, f,
+                                                        namespace='pyme.localizations')
+        except (KeyError, IOError):
+            pass
     
     @property
     def inputs(self):
