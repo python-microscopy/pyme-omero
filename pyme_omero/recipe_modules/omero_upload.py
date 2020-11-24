@@ -4,6 +4,9 @@ from PYME.recipes.output import RGBImageOutput
 from PYME.recipes.traits import DictStrStr, CStr, Input, Output, Enum, Float, Int, Bool
 import os
 
+class Sample(object):
+    pass
+
 @register_module('ImageUpload')
 class ImageUpload(OutputModule):
     """
@@ -22,10 +25,12 @@ class ImageUpload(OutputModule):
         set automatically.
     omero_dataset : str
         name of OMERO dataset to add the image to. If the dataset does not
-        already exist it will be created.
+        already exist it will be created. Can use sample metadata entries
+        using {format} syntax
     omero_project : str
         name of OMERO project to link the dataset to. If the project does not
-        already exist it will be created.
+        already exist it will be created. Can use sample metadata entries
+        using {format} syntax
     
     Notes
     -----
@@ -49,7 +54,7 @@ class ImageUpload(OutputModule):
     scheme = Enum(['OMERO'])
     
     omero_project = CStr('')
-    omero_dataset = CStr('')
+    omero_dataset = CStr('{Sample.SlideRef}')
 
     def _save(self, image, path):
         # force tif extension
@@ -75,6 +80,17 @@ class ImageUpload(OutputModule):
 
         im = namespace[self.input_image]
 
+        if hasattr(im, 'mdh'):
+            sample = Sample()  # hack around our md keys having periods in them
+            for k in [k for k in im.mdh.keys() if k.startswith('Sample.')]:
+                setattr(sample, k.split('Sample.')[-1], im.mdh[k])
+            sample_md = dict(Sample=sample)
+        else:
+            sample_md = {}
+        
+        dataset = self.omero_dataset.format(**sample_md)
+        project = self.omero_project.format(**sample_md)
+
         with TemporaryDirectory() as temp_dir:
             out_filename = os.path.join(temp_dir, out_filename)
             self._save(im, out_filename)
@@ -92,11 +108,8 @@ class ImageUpload(OutputModule):
                     mdh = None
                 namespace[loc_key].to_hdf(loc_filename, loc_key, metadata=mdh)
             
-            
-            image_id = core.upload_image_from_file(out_filename, 
-                                                   self.omero_dataset, 
-                                                   self.omero_project, 
-                                                   loc_filenames)
+            image_id = core.upload_image_from_file(out_filename, dataset, 
+                                                   project, loc_filenames)
         
         # if an h5r file is the principle input, upload it
         try:
