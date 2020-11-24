@@ -22,10 +22,12 @@ class ImageUpload(OutputModule):
         set automatically.
     omero_dataset : str
         name of OMERO dataset to add the image to. If the dataset does not
-        already exist it will be created.
+        already exist it will be created. Can use sample metadata entries
+        using {format} syntax
     omero_project : str
         name of OMERO project to link the dataset to. If the project does not
-        already exist it will be created.
+        already exist it will be created. Can use sample metadata entries
+        using {format} syntax
     
     Notes
     -----
@@ -49,7 +51,7 @@ class ImageUpload(OutputModule):
     scheme = Enum(['OMERO'])
     
     omero_project = CStr('')
-    omero_dataset = CStr('')
+    omero_dataset = CStr('{Sample.SlideRef}')
 
     def _save(self, image, path):
         # force tif extension
@@ -75,6 +77,14 @@ class ImageUpload(OutputModule):
 
         im = namespace[self.input_image]
 
+        try:
+            sample_md = {k:im.mdh[k] for k in im.mdh.keys() if k.startswith('Sample')}
+        except AttributeError:
+            sample_md = {}
+        
+        dataset = self.omero_dataset.format(**sample_md)
+        project = self.omero_project.format(**sample_md)
+
         with TemporaryDirectory() as temp_dir:
             out_filename = os.path.join(temp_dir, out_filename)
             self._save(im, out_filename)
@@ -93,8 +103,8 @@ class ImageUpload(OutputModule):
                 namespace[loc_key].to_hdf(loc_filename, 'Localizations',
                                           metadata=mdh)
             
-            upload_image_from_file(out_filename, self.omero_dataset, 
-                                   self.omero_project, loc_filenames)
+            upload_image_from_file(out_filename, dataset, project, 
+                                   loc_filenames)
     
     @property
     def inputs(self):
