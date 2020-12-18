@@ -10,7 +10,7 @@ def install_pyme_plugin():
     import os
     plugin_install_path = os.path.join(os.path.dirname(__file__), 
                                            'pyme_omero', 'install_plugin.py')
-    subprocess.Popen('%s %s' % (sys.executable, plugin_install_path), 
+    subprocess.Popen('"%s" "%s"' % (sys.executable, plugin_install_path), 
                         shell=True)
 
 
