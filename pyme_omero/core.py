@@ -122,17 +122,6 @@ def get_or_create_dataset_id(dataset_name, project_name=''):
             if dataset_wrapper != None:
                 return dataset_wrapper.getId()
             
-            # project._toggleCollectionsLoaded(True)
-            #linked_datasets = project.linkedDatasetList()
-
-            # check if dataset already exists but is unlinked
-            dataset_id = None
-            datasets = conn.getContainerService().loadContainerHierarchy('Dataset', 
-                                                                    None, None)
-            for d in datasets:
-                if d.getName().getValue() == dataset_name:
-                    dataset_id = d.getId().getValue()
-            
             if dataset_id == None:
                 # make a new dataset
                 dataset_id = create_dataset(conn, dataset_name)
