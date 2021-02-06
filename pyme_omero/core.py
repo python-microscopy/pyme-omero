@@ -122,11 +122,10 @@ def get_or_create_dataset_id(dataset_name, project_name=''):
             if dataset_wrapper != None:
                 return dataset_wrapper.getId()
             
-            if dataset_id == None:
-                # make a new dataset
-                dataset_id = create_dataset(conn, dataset_name)
+            # make a new dataset
+            dataset_id = create_dataset(conn, dataset_name)
             
-            # link dataset to project
+            # link it to the project
             links = []
             link = omero.model.ProjectDatasetLinkI()
             link.parent = omero.model.ProjectI(project_id, False)
